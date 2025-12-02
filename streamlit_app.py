@@ -7,7 +7,7 @@ import PyPDF2
 
 # 1. GEMINI API KEY
 # Энд түлхүүрээ бичнэ үү (эсвэл доор програмаас оруулж болно)
-GEMINI_API_KEY = "AIzaSyCWuMT2-P2ddC7qBkBrZfZgaKwObij6GZw"
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # ================= АЖЛЫН БАЙРНЫ ЖАГСААЛТ =================
 JOB_POSITIONS = [
@@ -171,4 +171,5 @@ if st.button("🔍 CV-нүүдэд Анализ Хийх") and uploaded_files:
     st.success("✅ Бүх файлуудыг шалгаж дууслаа!")
 
 elif st.button("🔍 CV-нүүдэд Анализ Хийх") and not uploaded_files:
+
     st.warning("Эхлээд дор хаяж нэг PDF файл оруулна уу.")
