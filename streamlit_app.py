@@ -1,17 +1,16 @@
 import streamlit as st
-import google.generativeai as genai
+from openai import OpenAI
 import PyPDF2
 
 # ================= ТОХИРГОО (CONFIGURATION) =================
-
 st.set_page_config(page_title="CV Hiring System", layout="wide")
 
-# 1. GEMINI API KEY
+# 1. OPENAI API KEY
 # Эхлээд Streamlit Secrets-оос уншина
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", None)
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", None)
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Client-г key олдсон үед үүсгэнэ
+client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # ================= АЖЛЫН БАЙРНЫ ЖАГСААЛТ =================
 JOB_POSITIONS = [
@@ -32,7 +31,6 @@ JOB_POSITIONS = [
 ]
 
 # ================= ФУНКЦУУД =================
-
 def extract_text_from_uploaded_file(uploaded_file):
     """PDF файлаас текст унших"""
     try:
@@ -47,11 +45,12 @@ def extract_text_from_uploaded_file(uploaded_file):
         return None
 
 
-def analyze_cv_with_gemini(cv_text, target_position, extra_requirements):
-    """Gemini руу CV болон шаардлагуудыг илгээж анализ хийх"""
+def analyze_cv_with_openai(cv_text, target_position, extra_requirements, client: OpenAI):
+    """OpenAI руу CV болон шаардлагуудыг илгээж анализ хийх"""
 
-    # Таны сонгосон модель (шаардлагатай бол өөрчилж болно)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    # Загвар модель (хүсвэл өөрчилж болно)
+    # боломжит сонголтууд: "gpt-4o-mini", "gpt-4.1-mini", "gpt-5 mini" гэх мэт
+    model_name = "gpt-4.1-mini"
 
     extra_req_text = ""
     if extra_requirements:
@@ -81,18 +80,23 @@ Output Format (in Mongolian language):
 6. **Шийдвэр (Recommendation):** 'Ярилцлагад дуудна' эсвэл 'Татгалзана' гэж дүгнэ.
 
 Боломжит хэмжээнд бодитой, хатуу шалгуураар дүгнэ.
-    """
+    """.strip()
 
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.responses.create(
+            model=model_name,
+            input=[
+                {"role": "system", "content": "You are a strict, fair HR screening assistant."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response.output_text
     except Exception as e:
         return f"AI Service Error: {str(e)}"
 
 
 # ================= ҮНДСЭН UI (ХЭРЭГЛЭГЧИЙН ХЭСЭГ) =================
-
-st.title("📄 CV Шүүлтүүрийн Систем (Gemini 2.0)")
+st.title("📄 CV Шүүлтүүрийн Систем (OpenAI)")
 st.markdown(
     "Таны компьютер дээрх PDF файлуудыг уншиж, ажлын байрны шаардлагад "
     "нийцэх эсэхийг шүүнэ."
@@ -118,33 +122,29 @@ with st.sidebar:
     st.divider()
 
     # 3. API Key оруулах (хийх боломжтой нэмэлт)
-    if not GEMINI_API_KEY:
-        st.warning("⚠️ Streamlit Secrets дээр GEMINI_API_KEY тохируулаагүй байна.")
-        user_key = st.text_input("Gemini API Key энд хуулна уу:", type="password")
+    if not OPENAI_API_KEY:
+        st.warning("⚠️ Streamlit Secrets дээр OPENAI_API_KEY тохируулаагүй байна.")
+        user_key = st.text_input("OpenAI API Key энд хуулна уу:", type="password")
         if user_key:
-            try:
-                genai.configure(api_key=user_key)
-                GEMINI_API_KEY = user_key
-                st.success("✅ API Key амжилттай холбогдлоо.")
-            except Exception as e:
-                st.error(f"API Key тохируулах үед алдаа гарлаа: {e}")
+            OPENAI_API_KEY = user_key
+            client = OpenAI(api_key=OPENAI_API_KEY)
+            st.success("✅ API Key амжилттай холбогдлоо.")
     else:
         st.success("✅ API Key (Secrets) амжилттай уншигдлаа.")
 
 # API key огт байхгүй бол анализ хийх боломжгүй
-if not GEMINI_API_KEY:
-    st.error("❌ Gemini API Key байхгүй байна. Secrets эсвэл Sidebar-оор оруулна уу.")
+if not OPENAI_API_KEY or client is None:
+    st.error("❌ OpenAI API Key байхгүй байна. Secrets эсвэл Sidebar-оор оруулна уу.")
     st.stop()
 
 # --- Үндсэн хэсэг ---
-
 st.info(f"Одоогоор **'{target_job}'** албан тушаалд горилогчийг шалгаж байна.")
 if extra_reqs:
     st.warning(f"⚠️ **Тусгай шаардлага идэвхжсэн:** \n\n{extra_reqs}")
 
 # File Upload
 uploaded_files = st.file_uploader(
-    "CV файлуудаа энд чирч оруулна уу (Зөвхөн PDF)", 
+    "CV файлуудаа энд чирч оруулна уу (Зөвхөн PDF)",
     type=["pdf"],
     accept_multiple_files=True,
 )
@@ -177,11 +177,12 @@ if analyze_clicked:
                 # 2. AI Анализ хийх
                 with col2:
                     if cv_text and len(cv_text) >= 50:
-                        with st.spinner("Gemini бодож байна..."):
-                            result = analyze_cv_with_gemini(
+                        with st.spinner("OpenAI бодож байна..."):
+                            result = analyze_cv_with_openai(
                                 cv_text=cv_text,
                                 target_position=target_job,
                                 extra_requirements=extra_reqs,
+                                client=client,
                             )
                             st.markdown(result)
 
