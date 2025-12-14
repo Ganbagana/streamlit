@@ -159,6 +159,14 @@ with st.sidebar:
             OPENAI_API_KEY = user_key
             client = OpenAI(api_key=OPENAI_API_KEY)
             st.success("✅ API Key амжилттай холбогдлоо.")
+            # ✅ Links (below main info)
+            st.markdown(
+                """
+            - **Нэг CV дундаж хиймэл ашигласан өртөг 35₮:** https://platform.openai.com/docs/pricing
+            - **Эх код:** https://github.com/Ganbagana/streamlit/blob/main/streamlit_app.py
+            """
+            )
+
     else:
         st.success("✅ API Key (Secrets) амжилттай уншигдлаа.")
 
@@ -171,13 +179,6 @@ if not OPENAI_API_KEY or client is None:
 st.info(f"Одоогоор **'{target_job}'** албан тушаалд горилогчийг шалгаж байна.")
 if extra_reqs:
     st.warning(f"⚠️ **Тусгай шаардлага идэвхжсэн:** \n\n{extra_reqs}")
-# ✅ Links (below main info)
-st.markdown(
-    """
-- **Нэг CV дундаж хиймэл ашигласан өртөг 35₮:** https://platform.openai.com/docs/pricing
-- **Эх код:** https://github.com/Ganbagana/streamlit/blob/main/streamlit_app.py
-"""
-)
 
 # File Upload
 uploaded_files = st.file_uploader(
@@ -227,5 +228,6 @@ if analyze_clicked:
             progress_bar.progress((i + 1) / len(uploaded_files))
 
         st.success("✅ Бүх файлуудыг шалгаж дууслаа!")
+
 
 
