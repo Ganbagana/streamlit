@@ -115,7 +115,7 @@ with st.sidebar:
     st.header("Тохиргоо")
 
     # ✅ Sample CV download buttons (from GitHub)
-    st.subheader("📥 Жишээ CV)")
+    st.subheader("📥 Жишээ CV")
     SAMPLE_URLS = {
         "Туршлагатай ажилтан": "https://raw.githubusercontent.com/Ganbagana/streamlit/main/sample_cvs/sample1-experience.pdf",
         "Туршлагагүй ажилтан": "https://raw.githubusercontent.com/Ganbagana/streamlit/main/sample_cvs/sample2-no-experience.pdf",
@@ -227,6 +227,7 @@ if analyze_clicked:
             progress_bar.progress((i + 1) / len(uploaded_files))
 
         st.success("✅ Бүх файлуудыг шалгаж дууслаа!")
+
 
 
 
