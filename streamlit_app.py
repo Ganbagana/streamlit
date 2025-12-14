@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import PyPDF2
+import requests
 
 # ================= ТОХИРГОО (CONFIGURATION) =================
 st.set_page_config(page_title="CV Hiring System", layout="wide")
@@ -49,7 +50,6 @@ def analyze_cv_with_openai(cv_text, target_position, extra_requirements, client:
     """OpenAI руу CV болон шаардлагуудыг илгээж анализ хийх"""
 
     # Загвар модель (хүсвэл өөрчилж болно)
-    # боломжит сонголтууд: "gpt-4o-mini", "gpt-4.1-mini", "gpt-5 mini" гэх мэт
     model_name = "gpt-4.1-mini"
 
     extra_req_text = ""
@@ -95,6 +95,14 @@ Output Format (in Mongolian language):
         return f"AI Service Error: {str(e)}"
 
 
+# ✅ GitHub-оос файл татах (cache ашиглана)
+@st.cache_data(ttl=3600)
+def fetch_file_bytes(url: str) -> bytes:
+    r = requests.get(url, timeout=30)
+    r.raise_for_status()
+    return r.content
+
+
 # ================= ҮНДСЭН UI (ХЭРЭГЛЭГЧИЙН ХЭСЭГ) =================
 st.title("📄 CV Шүүлтүүрийн Систем (OpenAI)")
 st.markdown(
@@ -105,6 +113,28 @@ st.markdown(
 # --- Sidebar (Зүүн талын цэс) ---
 with st.sidebar:
     st.header("Тохиргоо")
+
+    # ✅ Sample CV download buttons (from GitHub)
+    st.subheader("📥 Sample CVs (GitHub)")
+    SAMPLE_URLS = {
+        "sample1-experience.pdf": "https://raw.githubusercontent.com/Ganbagana/streamlit/main/sample_cvs/sample1-experience.pdf",
+        "sample1-no-experience.pdf": "https://raw.githubusercontent.com/Ganbagana/streamlit/main/sample_cvs/sample1-no-experience.pdf",
+    }
+
+    for fname, url in SAMPLE_URLS.items():
+        try:
+            data = fetch_file_bytes(url)
+            st.download_button(
+                label=f"Download: {fname}",
+                data=data,
+                file_name=fname,
+                mime="application/pdf",
+                key=f"gh_dl_{fname}",  # unique key
+            )
+        except Exception as e:
+            st.caption(f"⚠️ Cannot fetch {fname}: {e}")
+
+    st.divider()
 
     # 1. Ажлын байр сонгох
     target_job = st.selectbox("🎯 Албан тушаал сонгох:", JOB_POSITIONS)
